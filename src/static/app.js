@@ -23,13 +23,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
-        // Build participants section (avatar initial + email). Show friendly text when empty.
+        // Build participants section (avatar initial + email + delete icon). Show friendly text when empty.
         const participants = details.participants || [];
         const participantsHTML = participants.length
           ? `<ul class="participants-list">${participants
               .map(
-                (p) =>
-                  `<li><span class="avatar">${String(p).trim().charAt(0).toUpperCase()}</span><span class="participant-email">${p}</span></li>`
+                (p, idx) =>
+                  `<li><span class="avatar">${String(p).trim().charAt(0).toUpperCase()}</span><span class="participant-email">${p}</span><span class="delete-icon" title="Remove participant" data-activity="${name}" data-email="${p}">🗑️</span></li>`
               )
               .join("")}</ul>`
           : `<p class="no-participants">Be the first to sign up!</p>`;
@@ -80,6 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -96,6 +97,29 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
+    }
+  });
+
+  // Handle participant delete (unregister)
+  document.addEventListener("click", async (event) => {
+    if (event.target.classList.contains("delete-icon")) {
+      const activity = event.target.getAttribute("data-activity");
+      const email = event.target.getAttribute("data-email");
+      if (activity && email) {
+        try {
+          const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, {
+            method: "POST",
+          });
+          const result = await response.json();
+          if (response.ok) {
+            fetchActivities();
+          } else {
+            alert(result.detail || "Failed to unregister participant.");
+          }
+        } catch (error) {
+          alert("Error unregistering participant.");
+        }
+      }
     }
   });
 
